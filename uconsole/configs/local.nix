@@ -19,17 +19,13 @@ in {
     wirelesstools
     iw
     gitMinimal
+    cpulimit
+    sysstat
+    wlr-randr
+    procps
+    libinput
+    libevdev
+    python312Packages.numpy
+    python312Packages.python
   ];
-
-  networking.wireless = {
-    userControlled.enable = true;
-    enable = true;
-  };
-  systemd.services.wpa_supplicant.wantedBy = mkOverride 50 [];
-  networking.networkmanager.enable = false;
-
-  users.users.oom = {
-    isNormalUser = true;
-    extraGroups = ["wheel"];
-  };
 }
