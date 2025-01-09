@@ -1,0 +1,56 @@
+{
+  "layer": "top",
+  "modules-left": ["sway/workspaces", "sway/mode"],
+  "modules-center": ["sway/window"],
+  "modules-right": [
+    "idle-inhibitor", 
+    "keyboard-state", 
+    "pulseaudio", 
+    "clock", 
+    "tray",
+    "battery"
+  ],
+  "battery": {
+  },
+  "keyboard-state": {
+  	"device-path": "/dev/input/event9",
+    "numlock": true,
+    "capslock": true,
+    "scrolllock": true,
+    "format": {
+      "capslock": "C {icon}",
+      "numlock": "N {icon}",
+      "scrolllock": "S {icon}",
+    },
+    "format-icons": {
+      "locked": "",
+      "unlocked": ""
+    }
+  },
+  "tray": {
+    "icon-size": 21
+  },
+  "clock": {
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+    "format-alt": "{:%Y-%m-%d}"
+  },
+  "pulseaudio": {
+    // "scroll-step": 1, // %, can be a float
+    "format": "{volume}% {icon} {format_source}",
+    "format-bluetooth": "{volume}% {icon} {format_source}",
+    "format-bluetooth-muted": " {icon} {format_source}",
+    "format-muted": " {format_source}",
+    "format-source": "{volume}% ",
+    "format-source-muted": "",
+    "format-icons": {
+      "headphone": "",
+      "hands-free": "",
+      "headset": "",
+      "phone": "",
+      "portable": "",
+      "car": "",
+      "default": ["", "", ""]
+    },
+    "on-click": "pavucontrol"
+  },
+}
