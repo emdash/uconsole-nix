@@ -1,121 +1,162 @@
-# Edit this configuration file to define what should be installed on
-# your system. Help is available in the configuration.nix(5) man page, on
-# https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
+# Entry Point for this configuration.
+#
+# You must configure your user account and network settings here:
+#
+#   ./secrets.nix.
+#
+# A sample `secrets.nix` is provided along-side this file.
 {
   config,
   lib,
   pkgs,
   ...
 }: {
-  imports =
-    [
-      # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      # Include uConsole settings
-      ./uConsole.nix
-    ]
-    ++ lib.optional (builtins.pathExists ./local.nix) ./local.nix;
+  # Here we import hardware- and user-specific configuration.
+  #
+  # Don't mess with this unless you know what you're doing.
+  imports = [
+    ./hardware-configuration.nix
+    ./uConsole.nix
+    ./secrets.nix
+  ];
 
-  nixpkgs.overlays = [(final: prev: {
-    rofi-calc = prev.rofi-calc.override {
-      rofi-unwrapped = prev.rofi-wayland-unwrapped;
+  # This block configures the nix package manager, the beating heart
+  # of NixOS.
+  # 
+  # I have manually merged configuration options from `local.nix`,
+  # but I do not totally understand why each option is configured the
+  # way it is.
+  nix = {
+    # XXX: why?
+    distributedBuilds = false;
+
+    # XXX: Not sure who owns this binary cache. We'll leave it for now.
+    settings = {
+      substituters = ["https://cache-nix.project2.xyz/uconsole"];
+      trusted-substituters = ["https://cache-nix.project2.xyz/uconsole"];
+      trusted-public-keys = ["uconsole:t2pv3NWEtXCYY0fgv9BB8r9tRdK+Tz7HYhGq9bXIIck="];
+      experimental-features = ["nix-command" "flakes"];
     };
-  })];
+  };
 
-  # Use the extlinux boot loader. (NixOS wants to enable GRUB by default)
-  boot.loader.grub.enable = false;
-  # Enables the generation of /boot/extlinux/extlinux.conf
-  boot.loader.generic-extlinux-compatible.enable = true;
+  # This block configures nixpkgs, the soul of NixOS.
+  nixpkgs = {
+    # You probably want this default, unless you're like me.
+    config.allowUnfree = true;
+    
+    # XXX: rofi kinda sucks, switch to fuzzel?
+    overlays = [(final: prev: {
+      rofi-calc = prev.rofi-calc.override {
+        rofi-unwrapped = prev.rofi-wayland-unwrapped;
+      };
+    })];
+  };
 
-  networking.hostName = "uConsole";
-  # Pick only one of the below networking options.
+  # XXX: This configures some specific boot options.
+  boot = {
+    # XXX: to save space?
+    supportedFilesystems.zfs = false;
+  };
+
+  # Minimal Networking Config, for manual network management.
+  # Place all other network-related values in ./secrets.nix;
   networking.wireless.enable = true;
-  
-  # Set your time zone.
-  # time.timeZone = "Europe/Amsterdam";
 
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
-  # Select internationalisation properties.
-  # i18n.defaultLocale = "en_US.UTF-8";
-  # console = {
-  #   font = "Lat2-Terminus16";
-  #   keyMap = "us";
-  #   useXkbConfig = true; # use xkb.options in tty.
-  # };
-
+  # XXX: I should probably enable this.
   # services.pipewire = {
   #   enable = true;
   #   pulse.enable = true;
   # };
 
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.libinput.enable = true;
+  # This block configures all software installed as bare packages,
+  # rather than as `programs`, `services`, or `applications`.
+  environment.systemPackages = with pkgs; [
+    wirelesstools
+    iw
+    gitMinimal
+    cpulimit
+    sysstat
+    wlr-randr
+    procps
+    libinput
+    libevdev
+    python312Packages.numpy
+    python312Packages.python
+    helix
+    emacs-nox
+    tree
+    fzf
+    netsurf.browser
+    imv
+    octave
+    maxima
+    wxmaxima
+    bsdgames
+  ];
 
-  nixpkgs.config.allowUnfree = true;
+  # This block configures all packages made available via NixOS
+  # `programs` modules, but not as `services` or `app`lications.
+  #
+  # I take it on faith that higher-level options are preferred, when
+  # available, verus simply adding the bare package.
+  programs = {
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.brandon = {
-    isNormalUser = true;
+    # This is my preference for a minimalist, keyboard-driven, tiling
+    # graphical environment under wayland..
+    #
+    # Probably some of you will prefer hyprland, wafire, labwc, etc,
+    # but switching between them requires explicit support. Right now
+    # certain aspects of the configuration assume `sway` itself.
+    #
+    # Change this at your own risk, if you know what you're doing.
+    sway = {
+      enable = true;
 
-    extraGroups = [
-      "wheel"
-      "audio"
-      "video"
-      "plugdev"
-      "input"
-      "evdev"
-    ];
+      # XXX: is it better to declare these here, or above?
+      #
+      # I take it on faith that this enables extra integration, vs
+      # simply adding the packages above.
+      extraPackages = with pkgs; [
+        brightnessctl
+        foot
+        grim
+        swaybg
+        swaylock
+        waybar
+        wl-clipboard
+        rofi-wayland-unwrapped
+        rofi-emoji-wayland
+        rofi-calc
+        rofi-rbw-wayland
+        rofi-menugen
+        rofi-power-menu
+        wev
+      ];
+    };
 
-    packages = with pkgs; [
-      helix
-      emacs-nox
-      tree
-      fzf
-      netsurf.browser
-      imv
-      octave
-      maxima
-      wxmaxima
-      bsdgames
-    ];
+    # I prefer this to `screen`.
+    tmux.enable = true;
+
+    # It takes a while to launch, but once launched, it runs fairly well.
+    firefox.enable = true;
   };
 
-  programs.sway = {
-    enable = true;
-    extraPackages = with pkgs; [
-      brightnessctl
-      foot
-      grim
-      swaybg
-      swaylock
-      waybar
-      wl-clipboard
-      rofi-wayland-unwrapped
-      rofi-emoji-wayland
-      rofi-calc
-      rofi-rbw-wayland
-      rofi-menugen
-      rofi-power-menu
-      wev
-    ];
-  };
-
-  programs.tmux.enable = true;
-  programs.firefox.enable = true;
-
+  # This block configures all software available as a NixOS service.
   services = {
     openssh.enable = true;
     displayManager.ly.enable = true;
     logind = {
+      # `qsleep.sh` handles the power key directly.
       powerKey = "ignore";
+      # Long press will always shut the machine off, if for some
+      # reason `qsleep.sh` gets wedged.
       powerKeyLongPress = "poweroff";
     };
   };
 
+  # This block configures system-wide fonts, and default font choices.
   fonts = {
+    # Add any custom font packages you might want here.
     packages = with pkgs; [
       noto-fonts
       noto-fonts-cjk-sans
@@ -127,11 +168,14 @@
       symbola
     ];
 
+    # Set your default font preferences here.
     fontconfig.defaultFonts = {
       serif = [ "Noto Serif" ];
       sansSerif = [ "Noto Sans" ];
       monospace = [ "Firacode" ];
     };
   };
+
+  # Do not change this unless you know what you are doing.
   system.stateVersion = "25.05"; # Did you read the comment?
 }
