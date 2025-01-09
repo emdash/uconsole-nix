@@ -1,6 +1,6 @@
 # Entry Point for this configuration.
 #
-# You must configure your user account and network settings here:
+# Configure your user account and network settings here:
 #
 #   ./secrets.nix.
 #
@@ -41,10 +41,13 @@
 
   # This block configures nixpkgs, the soul of NixOS.
   nixpkgs = {
-    # You probably want this default, unless you're like me.
+    # Pragmatic default: Set to false if you're a purist.
     config.allowUnfree = true;
-    
-    # XXX: rofi kinda sucks, switch to fuzzel?
+
+    # This is a hack I found on the community forums
+    #
+    # It doesn't seem to help much.
+    # XXX: switch to fuzzel?
     overlays = [(final: prev: {
       rofi-calc = prev.rofi-calc.override {
         rofi-unwrapped = prev.rofi-wayland-unwrapped;
@@ -84,13 +87,14 @@
     python312Packages.python
     helix
     emacs-nox
+    neovim
     tree
     fzf
-    netsurf.browser
+    qutebrowser
+    surf # X11-only, currently broken? Are we missing XWayland?
     imv
     octave
     maxima
-    wxmaxima
     bsdgames
   ];
 
@@ -144,19 +148,21 @@
   # This block configures all software available as a NixOS service.
   services = {
     openssh.enable = true;
+
     displayManager.ly.enable = true;
+
     logind = {
-      # `qsleep.sh` handles the power key directly.
+      # `qsleep.sh` handles short press on the power key
       powerKey = "ignore";
-      # Long press will always shut the machine off, if for some
-      # reason `qsleep.sh` gets wedged.
+
+      # Long press to power-off, if your session gets wedged.
       powerKeyLongPress = "poweroff";
     };
   };
 
   # This block configures system-wide fonts, and default font choices.
   fonts = {
-    # Add any custom font packages you might want here.
+    # Add any additional font package here.
     packages = with pkgs; [
       noto-fonts
       noto-fonts-cjk-sans
@@ -176,6 +182,6 @@
     };
   };
 
-  # Do not change this unless you know what you are doing.
+  # Do not change unless you know what you are doing.
   system.stateVersion = "25.05"; # Did you read the comment?
 }
